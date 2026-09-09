@@ -59,13 +59,16 @@ HTML_UI = """<!DOCTYPE html>
       <div class="mt-6 flex items-center justify-between">
         <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Converted Markdown Output</span>
         <div class="flex gap-2">
-          <button id="copy-btn" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 rounded border border-gray-700 transition">Copy Markdown</button>
-          <button id="improve-btn" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-xs text-white rounded border border-purple-500 transition hidden">AI Improve</button>
-          <button id="download-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded border border-blue-500 transition hidden">Download .md</button>
+            <button id="copy-btn" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 rounded border border-gray-700 transition">Copy</button>
+            <button id="improve-btn" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-xs text-white rounded border border-purple-500 transition hidden">AI Improve</button>
+            <button id="download-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded border border-blue-500 transition hidden">Download .md</button>
         </div>
       </div>
 
-      <textarea id="output" readonly placeholder="Markdown output will appear here..." class="mt-2 w-full h-80 p-4 font-mono text-sm bg-[#0d1117] border border-gray-800 rounded-lg text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
+      <div id="editor-container" class="mt-2 w-full">
+          <textarea id="output" readonly placeholder="Markdown output will appear here..." class="w-full h-80 p-4 font-mono text-sm bg-[#0d1117] border border-gray-800 rounded-lg text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
+          <div id="diff-container" class="hidden w-full h-80 p-4 font-mono text-sm bg-[#0d1117] border border-gray-800 rounded-lg text-gray-200 overflow-auto"></div>
+      </div>
     </div>
   </div>
 
@@ -77,6 +80,9 @@ HTML_UI = """<!DOCTYPE html>
     const copyBtn = document.getElementById('copy-btn');
     const improveBtn = document.getElementById('improve-btn');
     const downloadBtn = document.getElementById('download-btn');
+    const output = document.getElementById('output');
+    const diffContainer = document.getElementById('diff-container');
+    let lastImproved = null;
 
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
@@ -95,6 +101,10 @@ HTML_UI = """<!DOCTYPE html>
       status.className = 'mt-4 text-sm font-medium text-blue-400';
       status.textContent = `Converting "${file.name}"...`;
       output.value = '';
+      output.classList.remove('hidden');
+      diffContainer.classList.add('hidden');
+      diffContainer.textContent = '';
+      lastImproved = null;
       downloadBtn.classList.add('hidden');
       improveBtn.classList.add('hidden');
 
@@ -116,6 +126,17 @@ HTML_UI = """<!DOCTYPE html>
           improveBtn.classList.remove('hidden');
           downloadBtn.classList.remove('hidden');
 
+          downloadBtn.onclick = () => {
+              const textToDownload = lastImproved || output.value;
+              const blob = new Blob([textToDownload], { type: 'text/markdown' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = (data.filename || 'converted').split('.')[0] + '.md';
+              a.click();
+              URL.revokeObjectURL(url);
+          };
+
           improveBtn.onclick = async () => {
             const originalText = output.value;
             improveBtn.disabled = true;
@@ -128,8 +149,14 @@ HTML_UI = """<!DOCTYPE html>
               });
               const aiData = await aiRes.json();
               if (aiRes.ok) {
-                output.value = aiData.improved;
-                status.textContent = '✓ Improved with AI!';
+                lastImproved = aiData.improved;
+                diffContainer.textContent = lastImproved;
+                diffContainer.classList.remove('hidden');
+                output.classList.add('hidden');
+                // optionally show the diff view; for now display refined markdown
+                // AI Refined Content is displayed in the diff container
+                
+                status.textContent = '✓ AI Improved! (Showing refined version)';
               } else {
                 alert('AI Improvement failed: ' + aiData.detail);
               }
@@ -139,17 +166,6 @@ HTML_UI = """<!DOCTYPE html>
               improveBtn.disabled = false;
               improveBtn.textContent = 'AI Improve';
             }
-          };
-
-          downloadBtn.onclick = () => {
-            const blob = new Blob([data.markdown], { type: 'text/markdown' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const base = (data.filename || file.name).replace(/\.[^/.]+$/, '');
-            a.href = url;
-            a.download = base + '.md';
-            a.click();
-            URL.revokeObjectURL(url);
           };
         } else {
           status.className = 'mt-4 text-sm font-medium text-red-400';
