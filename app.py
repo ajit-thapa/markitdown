@@ -58,7 +58,11 @@ HTML_UI = """<!DOCTYPE html>
 
       <div class="mt-6 flex items-center justify-between">
         <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Converted Markdown Output</span>
-        <button id="copy-btn" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 rounded border border-gray-700 transition">Copy Markdown</button>
+        <div class="flex gap-2">
+          <button id="copy-btn" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 rounded border border-gray-700 transition">Copy Markdown</button>
+          <button id="improve-btn" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-xs text-white rounded border border-purple-500 transition hidden">AI Improve</button>
+          <button id="download-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded border border-blue-500 transition hidden">Download .md</button>
+        </div>
       </div>
 
       <textarea id="output" readonly placeholder="Markdown output will appear here..." class="mt-2 w-full h-80 p-4 font-mono text-sm bg-[#0d1117] border border-gray-800 rounded-lg text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
@@ -71,6 +75,8 @@ HTML_UI = """<!DOCTYPE html>
     const output = document.getElementById('output');
     const status = document.getElementById('status');
     const copyBtn = document.getElementById('copy-btn');
+    const improveBtn = document.getElementById('improve-btn');
+    const downloadBtn = document.getElementById('download-btn');
 
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
@@ -89,6 +95,8 @@ HTML_UI = """<!DOCTYPE html>
       status.className = 'mt-4 text-sm font-medium text-blue-400';
       status.textContent = `Converting "${file.name}"...`;
       output.value = '';
+      downloadBtn.classList.add('hidden');
+      improveBtn.classList.add('hidden');
 
       const formData = new FormData();
       formData.append('file', file);
@@ -103,6 +111,46 @@ HTML_UI = """<!DOCTYPE html>
           status.className = 'mt-4 text-sm font-medium text-green-400';
           status.textContent = `✓ Converted "${file.name}" successfully!`;
           output.value = data.markdown;
+
+          // Enable AI Improve and Download
+          improveBtn.classList.remove('hidden');
+          downloadBtn.classList.remove('hidden');
+
+          improveBtn.onclick = async () => {
+            const originalText = output.value;
+            improveBtn.disabled = true;
+            improveBtn.textContent = 'Improving...';
+            try {
+              const aiRes = await fetch('/api/improve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ markdown: originalText })
+              });
+              const aiData = await aiRes.json();
+              if (aiRes.ok) {
+                output.value = aiData.improved;
+                status.textContent = '✓ Improved with AI!';
+              } else {
+                alert('AI Improvement failed: ' + aiData.detail);
+              }
+            } catch (err) {
+              alert('Error connecting to AI service: ' + err.message);
+            } finally {
+              improveBtn.disabled = false;
+              improveBtn.textContent = 'AI Improve';
+            }
+          };
+
+          downloadBtn.onclick = () => {
+            const blob = new Blob([data.markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const base = (data.filename || file.name).replace(/\.[^/.]+$/, '');
+            a.href = url;
+            a.download = base + '.md';
+            a.click();
+            URL.revokeObjectURL(url);
+          };
         } else {
           status.className = 'mt-4 text-sm font-medium text-red-400';
           status.textContent = `Error: ${data.detail || 'Conversion failed'}`;
@@ -168,6 +216,17 @@ async def convert_file_raw(file: UploadFile = File(...)):
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+@app.post("/api/improve")
+async def improve_markdown(data: dict):
+    markdown = data.get("markdown", "")
+    try:
+        # Placeholder for AI logic (Ollama or other provider)
+        # In a real environment, we'd use 'requests' to call Ollama here.
+        improved = f"{markdown}\n\n---\n*AI Refined Content*"
+        return {"improved": improved}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
