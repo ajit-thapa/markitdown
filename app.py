@@ -23,52 +23,61 @@ HTML_UI = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MarkItDown Studio</title>
+  <title>MarkItDown Pro | AI Document Processing</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background-color: #0d1117; color: #c9d1d9; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-    .editor-box { background-color: #161b22; border: 1px solid #30363d; }
+    body { background-color: #030712; color: #f9fafb; font-family: Inter, system-ui, sans-serif; }
+    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+    .gradient-text { background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   </style>
 </head>
-<body class="min-h-screen p-6 flex flex-col items-center">
-  <div class="max-w-4xl w-full">
-    <div class="flex items-center justify-between pb-6 border-b border-gray-800">
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+  <div class="max-w-5xl w-full">
+    <header class="flex items-center justify-between pb-8 border-b border-gray-800 mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-          📄 MarkItDown Studio
-        </h1>
-        <p class="text-sm text-gray-400 mt-1">Convert PDF, DOCX, XLSX, PPTX, Images, Audio, HTML & more to clean Markdown</p>
+        <h1 class="text-3xl font-extrabold tracking-tight gradient-text">MarkItDown Pro</h1>
+        <p class="text-gray-400 mt-2">Production-grade document extraction & AI enhancement</p>
       </div>
-      <span class="px-3 py-1 bg-blue-900/40 text-blue-400 text-xs rounded-full border border-blue-700/50">Local Engine Ready</span>
+      <div class="flex items-center gap-3">
+        <span class="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-400 text-xs font-semibold rounded-full border border-green-500/20">
+          <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> SYSTEM ONLINE
+        </span>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="md:col-span-1 space-y-4">
+        <div id="drop-zone" class="glass rounded-2xl p-8 text-center hover:border-blue-500/50 transition-all cursor-pointer group">
+          <div class="flex flex-col items-center gap-4">
+            <div class="p-4 rounded-full bg-gray-800/50 group-hover:bg-blue-500/10 transition-colors">
+              <svg class="w-8 h-8 text-gray-400 group-hover:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+            <p class="text-sm font-medium">Drop document or <span class="text-blue-400 underline">browse</span></p>
+          </div>
+          <input type="file" id="file-input" class="hidden" />
+        </div>
+        <div id="status" class="text-xs text-center font-mono"></div>
+      </div>
+
+      <div class="md:col-span-2 glass rounded-2xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex gap-2 p-1 bg-gray-900 rounded-lg">
+            <button id="view-raw" class="px-3 py-1 text-xs rounded bg-gray-700 text-white shadow-sm">Original</button>
+            <button id="view-refined" class="px-3 py-1 text-xs rounded text-gray-400 hover:text-white">Refined</button>
+          </div>
+          <div class="flex gap-2">
+            <button id="copy-btn" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs rounded border border-gray-700 transition">Copy</button>
+            <button id="improve-btn" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-xs text-white rounded shadow-lg shadow-purple-500/20 transition hidden">AI Enhance</button>
+            <button id="download-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded shadow-lg shadow-blue-500/20 transition hidden">Download</button>
+          </div>
+        </div>
+        <div id="editor-container" class="relative">
+          <textarea id="output" readonly class="w-full h-[400px] p-4 font-mono text-sm bg-[#030712] border border-gray-800 rounded-lg text-gray-300 focus:outline-none"></textarea>
+          <div id="diff-container" class="hidden w-full h-[400px] p-4 font-mono text-sm bg-[#030712] border border-gray-800 rounded-lg text-gray-300 overflow-auto"></div>
+        </div>
+      </div>
     </div>
-
-    <div class="mt-6 editor-box rounded-xl p-6 shadow-xl">
-      <div id="drop-zone" class="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer bg-[#0d1117]/50">
-        <input type="file" id="file-input" class="hidden" />
-        <div class="flex flex-col items-center justify-center space-y-2">
-          <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-          </svg>
-          <p class="text-sm font-medium text-gray-200">Drag & drop files here, or <span class="text-blue-400 underline">browse</span></p>
-          <p class="text-xs text-gray-500">Supports PDF, DOCX, PPTX, XLSX, CSV, JSON, XML, HTML, MP3, WAV, Images</p>
-        </div>
-      </div>
-
-      <div id="status" class="mt-4 hidden text-sm font-medium"></div>
-
-      <div class="mt-6 flex items-center justify-between">
-        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Converted Markdown Output</span>
-        <div class="flex gap-2">
-            <button id="copy-btn" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 rounded border border-gray-700 transition">Copy</button>
-            <button id="improve-btn" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-xs text-white rounded border border-purple-500 transition hidden">AI Improve</button>
-            <button id="download-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded border border-blue-500 transition hidden">Download .md</button>
-        </div>
-      </div>
-
-      <div id="editor-container" class="mt-2 w-full">
-          <textarea id="output" readonly placeholder="Markdown output will appear here..." class="w-full h-80 p-4 font-mono text-sm bg-[#0d1117] border border-gray-800 rounded-lg text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
-          <div id="diff-container" class="hidden w-full h-80 p-4 font-mono text-sm bg-[#0d1117] border border-gray-800 rounded-lg text-gray-200 overflow-auto"></div>
-      </div>
+  </div>
     </div>
   </div>
 
@@ -80,9 +89,25 @@ HTML_UI = """<!DOCTYPE html>
     const copyBtn = document.getElementById('copy-btn');
     const improveBtn = document.getElementById('improve-btn');
     const downloadBtn = document.getElementById('download-btn');
-    const output = document.getElementById('output');
     const diffContainer = document.getElementById('diff-container');
+    const viewRawBtn = document.getElementById('view-raw');
+    const viewRefinedBtn = document.getElementById('view-refined');
     let lastImproved = null;
+
+    viewRawBtn.addEventListener('click', () => {
+      output.classList.remove('hidden');
+      diffContainer.classList.add('hidden');
+      viewRawBtn.className = "px-3 py-1 text-xs rounded bg-gray-700 text-white shadow-sm";
+      viewRefinedBtn.className = "px-3 py-1 text-xs rounded text-gray-400 hover:text-white";
+    });
+
+    viewRefinedBtn.addEventListener('click', () => {
+      if (!lastImproved) return;
+      output.classList.add('hidden');
+      diffContainer.classList.remove('hidden');
+      viewRefinedBtn.className = "px-3 py-1 text-xs rounded bg-gray-700 text-white shadow-sm";
+      viewRawBtn.className = "px-3 py-1 text-xs rounded text-gray-400 hover:text-white";
+    });
 
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
@@ -151,12 +176,8 @@ HTML_UI = """<!DOCTYPE html>
               if (aiRes.ok) {
                 lastImproved = aiData.improved;
                 diffContainer.textContent = lastImproved;
-                diffContainer.classList.remove('hidden');
-                output.classList.add('hidden');
-                // optionally show the diff view; for now display refined markdown
-                // AI Refined Content is displayed in the diff container
-                
-                status.textContent = '✓ AI Improved! (Showing refined version)';
+                viewRefinedBtn.click();
+                status.textContent = '✓ AI Enhanced';
               } else {
                 alert('AI Improvement failed: ' + aiData.detail);
               }
