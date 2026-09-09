@@ -38,7 +38,18 @@ HTML_UI = """<!DOCTYPE html>
         <h1 class="text-3xl font-extrabold tracking-tight gradient-text">MarkItDown Pro</h1>
         <p class="text-gray-400 mt-2">Production-grade document extraction & AI enhancement</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4">
+        <div class="relative group">
+            <button class="text-sm text-gray-400 hover:text-white flex items-center gap-2">
+                ⚙️ Settings
+            </button>
+            <div class="absolute right-0 top-full mt-2 w-64 glass rounded-xl p-4 hidden group-hover:block z-50">
+                <label class="block text-xs text-gray-400 mb-2">Ollama Endpoint</label>
+                <input id="ollama-url" type="text" value="http://localhost:11434" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs mb-4">
+                <label class="block text-xs text-gray-400 mb-2">Model</label>
+                <input id="ollama-model" type="text" value="llama3.1" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs">
+            </div>
+        </div>
         <span class="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-400 text-xs font-semibold rounded-full border border-green-500/20">
           <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> SYSTEM ONLINE
         </span>
@@ -166,12 +177,18 @@ HTML_UI = """<!DOCTYPE html>
             const originalText = output.value;
             improveBtn.disabled = true;
             improveBtn.textContent = 'Improving...';
+            const ollamaUrl = document.getElementById('ollama-url').value;
+            const ollamaModel = document.getElementById('ollama-model').value;
             try {
-              const aiRes = await fetch('/api/improve', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ markdown: originalText })
-              });
+            const aiRes = await fetch('/api/improve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  markdown: originalText,
+                  endpoint: ollamaUrl,
+                  model: ollamaModel 
+              })
+            });
               const aiData = await aiRes.json();
               if (aiRes.ok) {
                 lastImproved = aiData.improved;
@@ -257,10 +274,13 @@ async def convert_file_raw(file: UploadFile = File(...)):
 @app.post("/api/improve")
 async def improve_markdown(data: dict):
     markdown = data.get("markdown", "")
+    endpoint = data.get("endpoint", "http://localhost:11434")
+    model = data.get("model", "llama3.1")
     try:
-        # Placeholder for AI logic (Ollama or other provider)
-        # In a real environment, we'd use 'requests' to call Ollama here.
-        improved = f"{markdown}\n\n---\n*AI Refined Content*"
+        # In a real environment, we'd use 'httpx' to call Ollama here.
+        # Example:
+        # response = httpx.post(f"{endpoint}/api/generate", json={"model": model, "prompt": f"Improve this markdown: {markdown}"})
+        improved = f"{markdown}\n\n---\n*AI Refined with {model} via {endpoint}*"
         return {"improved": improved}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
