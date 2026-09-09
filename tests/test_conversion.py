@@ -22,5 +22,9 @@ class TestMarkItDownConversion(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def test_pdf_dependency(self):
+        import pypdf
+        self.assertTrue(hasattr(pypdf, "PdfReader"))
+
 if __name__ == "__main__":
     unittest.main()
