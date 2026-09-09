@@ -277,11 +277,22 @@ async def improve_markdown(data: dict):
     endpoint = data.get("endpoint", "http://localhost:11434")
     model = data.get("model", "llama3.1")
     try:
-        # In a real environment, we'd use 'httpx' to call Ollama here.
-        # Example:
-        # response = httpx.post(f"{endpoint}/api/generate", json={"model": model, "prompt": f"Improve this markdown: {markdown}"})
-        improved = f"{markdown}\n\n---\n*AI Refined with {model} via {endpoint}*"
-        return {"improved": improved}
+        import httpx
+        async with httpx.AsyncClient() as client:
+            prompt = f"The following is a markdown document extracted from a file. Please improve its formatting, fix any OCR errors, and ensure it follows professional markdown standards. Return ONLY the improved markdown.\n\n{markdown}"
+            response = await client.post(
+                f"{endpoint}/api/generate",
+                json={"model": model, "prompt": prompt, "stream": False},
+                timeout=60.0
+            )
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail="Ollama error: " + response.text)
+            
+            result = response.json()
+            improved = result.get("response", "").strip()
+            if not improved:
+                improved = markdown  # Fallback
+            return {"improved": improved}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
